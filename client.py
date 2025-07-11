@@ -13,7 +13,9 @@ class Clerk:
         self.servers = servers
         self.cfg = cfg
 
-        # Your definitions here.
+        # Your definitions here
+        self.update_id = 0
+        self.client_id = nrand()
 
     # Fetch the current value for a key.
     # Returns "" if the key does not exist.
@@ -28,7 +30,11 @@ class Clerk:
     # arguments in server.py.
     def get(self, key: str) -> str:
         # You will have to modify this function.
-        return ""
+
+        # rpc message
+        args = GetArgs(key)
+        reply = self.servers[0].call("KVServer.Get", args)
+        return reply.value
 
     # Shared by Put and Append.
     #
@@ -41,7 +47,18 @@ class Clerk:
     # arguments in server.py.
     def put_append(self, key: str, value: str, op: str) -> str:
         # You will have to modify this function.
-        return ""
+
+        args = PutAppendArgs(key, value, self.client_id, self.update_id)
+
+        while True:
+            try:
+                reply = self.servers[0].call(f'KVServer.{op}', args)
+                break
+            except TimeoutError:
+                print(f"Retrying {op}...")
+
+        self.update_id += 1
+        return reply.value
 
     def put(self, key: str, value: str):
         self.put_append(key, value, "Put")
